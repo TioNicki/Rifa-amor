@@ -1,120 +1,47 @@
-<!DOCTYPE html>
-<html lang="pt-br">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Rifa Online</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            text-align: center;
-            margin: 20px;
-            background-color: #ffe6f2;
-            color: #d63384;
-        }
-        .container {
-            max-width: 400px;
-            margin: auto;
-            padding: 20px;
-            border: 1px solid #d63384;
-            border-radius: 10px;
-            box-shadow: 2px 2px 10px rgba(0, 0, 0, 0.1);
-            background-color: #fff0f5;
-        }
-        .hidden { display: none; }
-        .number-grid {
-            display: grid;
-            grid-template-columns: repeat(10, 1fr);
-            gap: 5px;
-            margin-top: 20px;
-        }
-        .number {
-            width: 30px;
-            height: 30px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            background-color: #d63384;
-            color: white;
-            border-radius: 50%;
-            cursor: pointer;
-            font-size: 12px;
-            font-weight: bold;
-        }
-        .buy-button, button[type="submit"] {
-            margin-top: 20px;
-            background-color: #d63384;
-            color: white;
-            padding: 10px;
-            border: none;
-            cursor: pointer;
-            display: block;
-            width: 100%;
-        }
-    </style>
-    <script src="https://sdk.mercadopago.com/js/v2" defer></script>
-</head>
-<body>
-    <div class="container">
-        <h1>Compre sua Rifa</h1>
-        <p><strong>Vendedor:</strong> Milena</p>
-        <p><strong>Causa:</strong> Ajudar no ministério de dança.</p>
-        <p>Escolha um número e participe!</p>
-        
-        <div class="number-grid">
-            <script>
-                for (let i = 301; i <= 350; i++) {
-                    document.write(`<div class="number">${i}</div>`);
-                }
-            </script>
-        </div>
-        
-        <button class="buy-button" onclick="document.getElementById('form-container').classList.remove('hidden')">Comprar</button>
-        
-        <div id="form-container" class="hidden">
-            <form id="payment-form">
-                <label for="nome">Nome:</label>
-                <input type="text" id="nome" required>
-                
-                <label for="telefone">Telefone:</label>
-                <input type="tel" id="telefone" required>
-                
-                <label for="numero">Número da Rifa:</label>
-                <input type="number" id="numero" min="301" max="350" required>
+<?php
+    // Passo 1: Carregar a biblioteca do Composer
+    require_once 'vendor/autoload.php';
 
-                <button type="submit">Reservar e Pagar</button>
-            </form>
-        </div>
+    use MercadoPago\Client\Common\RequestOptions;
+    use MercadoPago\Client\Payment\PaymentClient;
+    use MercadoPago\Exceptions\MPApiException;
+    use MercadoPago\MercadoPagoConfig;
 
-        <div id="pix-container" class="hidden">
-            <h3>Escaneie o QR Code para pagar:</h3>
-            <img id="pix-qr" src="" alt="QR Code Pix">
-        </div>
-    </div>
+    // Passo 2: Configurar o token de acesso do Mercado Pago
+    MercadoPagoConfig::setAccessToken("TEST-8008261255382605-020719-ec1c4b2c84fa54917d6a1c129099e60c-210535770"); // Substitua pelo seu token de acesso
 
-    <script>
-    document.getElementById("payment-form").addEventListener("submit", async function (event) {
-        event.preventDefault();
+    // Passo 2.1 (opcional - o padrão é SERVER): Definir ambiente de teste ou produção
+    MercadoPagoConfig::setRuntimeEnviroment(MercadoPagoConfig::LOCAL); // Definindo para testar localmente
 
-        const nome = document.getElementById("nome").value;
-        const telefone = document.getElementById("telefone").value;
-        const numero = document.getElementById("numero").value;
+    // Passo 3: Inicializar o cliente da API
+    $client = new PaymentClient();
 
-        const response = await fetch("processar_pagamento.php", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ nome, telefone, numero }),
-        });
+    try {
+        // Passo 4: Criar o array de requisição
+        $request = [
+            "transaction_amount" => 10.00,  // Valor do pagamento
+            "description" => "Rifa número " . $data["numero"],  // Descrição do pagamento
+            "payment_method_id" => "pix",  // Método de pagamento
+            "payer" => [
+                // Não estamos mais enviando email, first_name, last_name ou número de CPF
+            ]
+        ];
 
-        const data = await response.json();
+        // Passo 5: Criar as opções de requisição, configurando o cabeçalho X-Idempotency-Key
+        $request_options = new RequestOptions();
+        $request_options->setCustomHeaders(["X-Idempotency-Key: " . uniqid()]); // Cabeçalho para garantir idempotência
 
-        if (data.qr_code) {
-            document.getElementById("pix-qr").src = `https://chart.googleapis.com/chart?chs=250x250&cht=qr&chl=${encodeURIComponent(data.qr_code)}`;
-            document.getElementById("pix-container").classList.remove("hidden");
-        } else {
-            alert("Erro ao gerar pagamento via Pix.");
-        }
-    });
-    </script>
-</body>
-</html>
+        // Passo 6: Realizar a requisição
+        $payment = $client->create($request, $request_options);
+        echo $payment->id;
+
+    // Passo 7: Tratar exceções
+    } catch (MPApiException $e) {
+        echo "Status code: " . $e->getApiResponse()->getStatusCode() . "\n";
+        echo "Content: ";
+        var_dump($e->getApiResponse()->getContent());
+        echo "\n";
+    } catch (\Exception $e) {
+        echo $e->getMessage();
+    }
+?>
