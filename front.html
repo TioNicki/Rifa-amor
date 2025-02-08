@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rifa Online</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            margin: 20px;
+            background-color: #ffe6f2;
+            color: #d63384;
+        }
+        .container {
+            max-width: 400px;
+            margin: auto;
+            padding: 20px;
+            border: 1px solid #d63384;
+            border-radius: 10px;
+            box-shadow: 2px 2px 10px rgba(0, 0, 0, 0.1);
+            background-color: #fff0f5;
+        }
+        .hidden { display: none; }
+        .number-grid {
+            display: grid;
+            grid-template-columns: repeat(10, 1fr);
+            gap: 5px;
+            margin-top: 20px;
+        }
+        .number {
+            width: 30px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background-color: #d63384;
+            color: white;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        .buy-button, button[type="submit"] {
+            margin-top: 20px;
+            background-color: #d63384;
+            color: white;
+            padding: 10px;
+            border: none;
+            cursor: pointer;
+            display: block;
+            width: 100%;
+        }
+    </style>
+    <script src="https://sdk.mercadopago.com/js/v2" defer></script>
+</head>
+<body>
+    <div class="container">
+        <h1>Compre sua Rifa</h1>
+        <p><strong>Vendedor:</strong> Milena</p>
+        <p><strong>Causa:</strong> Ajudar no ministério de dança.</p>
+        <p>Escolha um número e participe!</p>
+        
+        <div class="number-grid">
+            <script>
+                for (let i = 301; i <= 350; i++) {
+                    document.write(`<div class="number">${i}</div>`);
+                }
+            </script>
+        </div>
+        
+        <button class="buy-button" onclick="document.getElementById('form-container').classList.remove('hidden')">Comprar</button>
+        
+        <div id="form-container" class="hidden">
+            <form id="payment-form">
+                <label for="nome">Nome:</label>
+                <input type="text" id="nome" required>
+                
+                <label for="telefone">Telefone:</label>
+                <input type="tel" id="telefone" required>
+                
+                <label for="numero">Número da Rifa:</label>
+                <input type="number" id="numero" min="301" max="350" required>
+
+                <button type="submit">Reservar e Pagar</button>
+            </form>
+        </div>
+
+        <div id="pix-container" class="hidden">
+            <h3>Escaneie o QR Code para pagar:</h3>
+            <img id="pix-qr" src="" alt="QR Code Pix">
+        </div>
+    </div>
+
+    <script>
+    document.getElementById("payment-form").addEventListener("submit", async function (event) {
+        event.preventDefault();
+
+        const nome = document.getElementById("nome").value;
+        const telefone = document.getElementById("telefone").value;
+        const numero = document.getElementById("numero").value;
+
+        const response = await fetch("processar_pagamento.php", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ nome, telefone, numero }),
+        });
+
+        const data = await response.json();
+
+        if (data.qr_code) {
+            document.getElementById("pix-qr").src = `https://chart.googleapis.com/chart?chs=250x250&cht=qr&chl=${encodeURIComponent(data.qr_code)}`;
+            document.getElementById("pix-container").classList.remove("hidden");
+        } else {
+            alert("Erro ao gerar pagamento via Pix.");
+        }
+    });
+    </script>
+</body>
+</html>
