@@ -18,8 +18,9 @@ if (PHP_VERSION_ID < 50600) {
         $err,
         E_USER_ERROR
     );
+    exit(1); // Ensure the script stops execution after triggering the error
 }
 
 require_once __DIR__ . '/composer/autoload_real.php';
 
-return ComposerAutoloaderInit7508ca2e0761bbf3e9800e151f32f6b1::getLoader();
+return ComposerAutoloaderInitc6bd6fb2e0829a6985ba8c02e1307083::getLoader();
